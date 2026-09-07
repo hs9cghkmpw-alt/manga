@@ -10,17 +10,39 @@
 は failure により失われた。本ドキュメント以降は、GitHub上の本リポジトリを唯一の正本として
 再構築・継続する。
 
+## 制作パイプライン（確定運用フロー）
+
+```
+Claude Code（本リポジトリで台本・プロンプト・進行管理を作成）
+  → GitHubへ直接 commit / push（PRは作らない）
+  → ChatGPTがGitHub上のリポジトリを読んでレビュー
+  → 無料FLUX（FLUX.1-schnell / dev 等）で作画
+```
+
+このフローに合わせ、画像生成プロンプトは2系統を用意している。
+
+- `scripts/image_prompts.md` / `image_prompts_en.md`: ページ単位・複数コマ込みの構図メモ
+  （台本レビュー用途、ChatGPTがストーリーとの整合性を確認する際に読む想定）。
+- `scripts/image_prompts_flux_en.md`: **実際にFLUXへ貼り付けて使う、コマ単位の単一プロンプト**。
+  無料FLUXツールはネガティブプロンプト欄がない場合が多く、1回の生成で1コマしか安定して
+  描けないため、禁止事項をポジティブ文に畳み込み、コマ単位に分割した構成にしてある。
+
 ## 重要な既知のギャップ（要対応）
 
 1. **`assets/reference/style_reference.jpg` が存在しない。**
    ユーザーが提供する予定だった基準参照画像が、現セッションおよびGitHub上のどこにも存在しない。
    `scripts/00_style_guide.md` は暫定的に文章のみで画風を定義している。
-   → ユーザーから参照画像を再取得次第、保存してこの制約を解消する。
-2. **現セッションには画像生成ツールが接続されていない。**
-   台本（`scripts/full_script.md`）・画像生成プロンプト（`scripts/image_prompts.md` /
-   `image_prompts_en.md`）・ネガティブプロンプト（`scripts/negative_prompts.md`）までは
-   テキストベースで再構築済みだが、実際のページ画像（`pages/draft/`, `pages/final/`）と
-   最終PDF（`output/`）の生成には、画像生成が可能な環境・ツールでの作業が別途必要。
+   → ユーザーから参照画像を再取得次第、保存してこの制約を解消する。FLUXがimage-to-image／
+   参照画像入力に対応している場合は、入手後に`image_prompts_flux_en.md`のGLOBAL節へ
+   スタイル参照としての使用を追記する。
+2. **Claude Code自体には画像生成ツールが接続されていない。**
+   これは今回の運用フロー上、想定内（作画は無料FLUX側の担当）。台本
+   （`scripts/full_script.md`）・画像生成プロンプト（`scripts/image_prompts.md` /
+   `image_prompts_en.md` / `image_prompts_flux_en.md`）・ネガティブプロンプト
+   （`scripts/negative_prompts.md`）はテキストベースで再構築済み。
+   → 次はユーザー側で `image_prompts_flux_en.md` のコマ単位プロンプトをFLUXに貼り付けて
+   パネル画像を生成し、`scripts/image_prompts_flux_en.md` 末尾の「ページ合成」手順に従って
+   `pages/draft/` にページを組み立てる工程に進む。
 
 ## ページ進行状況（全24ページ）
 
@@ -54,22 +76,27 @@
 | P23 | これから一緒に考えたいこと | 済 | 済 | 未着手 | 未着手 |
 | P24 | 将来 — 理解のある中で生きていく | 済 | 済 | 未着手 | 未着手 |
 
+上表の「画像生成プロンプト」列はページ単位メモ（`image_prompts.md`/`image_prompts_en.md`）の
+状態を示す。FLUXへ実際に投入するコマ単位プロンプトは全ページ分 `scripts/image_prompts_flux_en.md`
+に作成済み（下記「完了済み」参照）。
+
 ## 完了済み
 
 - [x] リポジトリ再clone、GitHub認証確認
 - [x] `README.md` / `CLAUDE.md` / `docs/QA_CHECKLIST.md` / Issue #1 の内容確認
 - [x] `scripts/00_style_guide.md` 作成
 - [x] `scripts/full_script.md` 作成（全24ページ分の台本・コマ構成・セリフ初稿）
-- [x] `scripts/image_prompts.md`（日本語）作成
-- [x] `scripts/image_prompts_en.md`（英語）作成
+- [x] `scripts/image_prompts.md`（日本語・ページ単位）作成
+- [x] `scripts/image_prompts_en.md`（英語・ページ単位）作成
+- [x] `scripts/image_prompts_flux_en.md`（英語・コマ単位・無料FLUX貼り付け用）作成
 - [x] `scripts/negative_prompts.md` 作成
 - [x] `pages/draft/README.md` / `pages/final/README.md` / `output/README.md` 作成
 
 ## 未完了・次の制作工程
 
 1. `assets/reference/style_reference.jpg` の再取得（ユーザー対応待ち）
-2. 画像生成が可能な環境で、`scripts/image_prompts.md` / `image_prompts_en.md` を用いて
-   P00〜P24の各ページ画像を生成し `pages/draft/` に配置
+2. `scripts/image_prompts_flux_en.md` のコマ単位プロンプトを無料FLUXに貼り付けてコマ画像を生成し、
+   同ファイル末尾の手順でページ単位に合成して `pages/draft/` に配置
 3. `CLAUDE.md` の制作工程（1ページごとに拡大確認→日本語全文確認→事実確認→構図確認→
    修正→確定）に従い、各ページを1枚ずつ校閲
 4. 日本語テキストをAI生成に頼らず正規フォントで組版（`scripts/00_style_guide.md` §8）
